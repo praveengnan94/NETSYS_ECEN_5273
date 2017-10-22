@@ -136,7 +136,7 @@ int main(int argc , char *argv[])
     puts("bind done");
      
     //Listen
-    listen(socket_desc , 15);
+    listen(socket_desc , 30);
      
     //Accept and incoming connection
     puts("Waiting for incoming connections...");
@@ -153,7 +153,7 @@ while(1)
             perror("accept failed");
             return 1;
         }
-        printf("Connection accepted\n");
+        printf("Connection accepted sock id %d\n",client_sock);
         
     if((pid=fork())==0)
     { // this is the child process
@@ -165,7 +165,7 @@ while(1)
         char * nextLine,*pch;
         char * curLine = client_message;
         char file_content_type[25];
-        char h1[40],h2[40],h3[40],h4[40],h5[40];
+        char h1[40],h2[400],h3[40],h4[40],h5[40];
         off_t offset = 0;          /* file offset */
         size_t lSize;
         FILE * pFile;
@@ -173,12 +173,19 @@ while(1)
         
         // printf("PID %d ENTERED\n",pid);
         server_length = sizeof(server);
-        nbytes = read(client_sock, client_message, sizeof(client_message));
-        //Send the message back to client
-        printf("RECEIVED MESSAGE %s\n\n\n",client_message);
+        
+        struct timeval timeout={keep_alive_time,0}; //set timeout for a large value
+        setsockopt(socket_desc,SOL_SOCKET,SO_RCVTIMEO,(char*)&timeout,sizeof(struct timeval));
+        setsockopt(client_sock,SOL_SOCKET,SO_RCVTIMEO,(char*)&timeout,sizeof(struct timeval));
 
-       while (curLine) 
-       {
+        nbytes = read(client_sock, client_message, sizeof(client_message));
+        
+         //Send the message back to client
+        printf("RECEIVED MESSAGE %s\n\n\n",client_message);       
+
+   while (curLine) 
+   {
+        // printf("CURLLLINE is ")
           nextLine = strchr(curLine, '\n');
           if (nextLine) *nextLine = '\0';  // temporarily terminate the current line
           
@@ -186,22 +193,77 @@ while(1)
         {
             pch=strtok(curLine," ");
             pch=strtok(NULL," ");
+            const char *dot = strrchr(pch, '.');
+            if(!dot || dot == pch)
+            {
+                strcpy(document_path_current_file,document_path);
+                strcat(document_path_current_file,"/index.html");
+                strcpy(file_type,"html");
+            }
+            else
+            {
+                strcpy(file_type,dot+1);
 
-            strcpy(document_path_current_file,document_path);
-            strcat(document_path_current_file,pch);
-            printf("TRYING TO OPEN %s\n",document_path_current_file);
+                strcpy(document_path_current_file,document_path);
+                strcat(document_path_current_file,pch);
+               
+                printf("FILE TYPE is %s\n",file_type);
+                printf("TRYING TO OPEN %s\n",document_path_current_file);
+            }
+
+            //FIRST CHECK FOR 501 ERROR, THEN 404 
+            int i,conf_type_found=0;
+            for(i=0;i<=no_of_content_types;i++)
+            {
+                if(strcmp(content_types[i].name,file_type)==0)
+                {
+                    conf_type_found=1;
+                    strcpy(file_content_type,content_types[i].extension);
+                }
+            }
+            if(conf_type_found==0)
+            {
+                strcpy(h1,"HTTP/1.1 501 Not Implemented\n\n");
+                if((nbytes=write(client_sock, h1, strlen(h1)== -1)))
+                    {
+                        printf("SENDING h1 TO SERVER FAILED\n");
+                    }
+
+                sprintf(h2,"<html>\n<body>501 Not Implemented: Invalid File Type : %s\n</body>\n</html>",document_path_current_file);
+
+                fd= open ("/home/praveen/Desktop/Netsys/Assignment2/www/501_error.html",O_RDWR);    
+                write(fd,h2,strlen(h2));
+                if((nbytes=sendfile(client_sock, fd,&offset, strlen(h2))) == -1)
+                    {
+                        printf("SENDING FILE NAME TO SERVER FAILED\n");
+                    }   
+
+                printf("501 Error\n");
+                close(client_sock);
+                exit(0);    
+            }
 
             pFile = fopen(document_path_current_file,"rb");//www/graphics/arrowdown.gif
             if (pFile==NULL) 
             {
-                printf("FILE IS NOT PRESENT\n");
-                // strcpy(h1,"HTTP/1.1 404 Not Found\n");
-                // if((nbytes=sendto(client_sock, h1, sizeof(h1), 0, (struct sockaddr*) &server, sizeof(server))) == -1)
-                // {
-                //     printf("SENDING h1 TO SERVER FAILED\n");
-                // }
-                close(client_sock);
-                exit(0); 
+                    printf("404 Error\n");
+                    strcpy(h1,"HTTP/1.1 404 Not Found\n\n");
+                    if((nbytes=write(client_sock, h1, strlen(h1)== -1)))
+                        {
+                            printf("SENDING h1 TO SERVER FAILED\n");
+                        }
+
+                    sprintf(h2,"<html>\n<body>404 Not Found Reason URL does not exist : %s\n</body>\n</html>",document_path_current_file);
+
+                    fd= open ("/home/praveen/Desktop/Netsys/Assignment2/www/404_error.html",O_RDWR);    
+                    write(fd,h2,strlen(h2));
+                    if((nbytes=sendfile(client_sock, fd,&offset, strlen(h2))) == -1)
+                        {
+                            printf("SENDING FILE NAME TO SERVER FAILED\n");
+                        }  
+                    fclose(pFile); 
+                    close(client_sock);
+                    exit(0); 
             }
             fd= open (document_path_current_file,O_RDONLY);
             memset(document_path_current_file,0,sizeof(document_path_current_file));
@@ -212,77 +274,155 @@ while(1)
             fread(file_contents,lSize,lSize,pFile);
             // printf("FILE SIZE IS %ld\n",lSize);
 
-
-            const char *dot = strrchr(pch, '.');
-            if(!dot || dot == pch)
-                {}
-            strcpy(file_type,dot+1);
-
-            printf("FILE TYPE is %s\n",file_type);
-            int i;
-            for(i=0;i<=no_of_content_types;i++)
-            {
-                if(strcmp(content_types[i].name,file_type)==0)
-                {
-                    strcpy(file_content_type,content_types[i].extension);
-                }
-            }
         }
-          curLine = nextLine ? (nextLine+1) : NULL;
-       }
+        //For match in Keep alive option
+        // if(strstr(curLine,"Connection:"))
+        // {
+        //     printf("KEEEEEEP is %s\n",curLine);
+          
+        // }
+        curLine = nextLine ? (nextLine+1) : NULL;
+   }
 
-        strcpy(h1,"HTTP/1.1 200 OK\n\n");
+        
+
+
+        strcpy(h1,"HTTP/1.1 200 OK\n");
         sprintf(h2,"Content-Type: %s\n",file_content_type);
         
-        sprintf(h3,"Content-Length: %ld\n\n",lSize);
+        sprintf(h3,"Content-Length: %ld\n",lSize);
         
-        strcpy(h4,"Connection: Keep-alive\n\n");
+        strcpy(h4,"Connection: Keep-Alive\n");
 
-        strcpy(h5,"Keep-Alive: timeout=15, max=100\n\n");
+        sprintf(h5,"Keep-alive: timeout=%d\n\n",keep_alive_time);
 
-        // printf("SENDING MESSSAGE\n\n%s%s%s%s\n",h1,h2,h3,h4);
-        // if((nbytes=sendto(client_sock, h1, sizeof(h1), 0, (struct sockaddr*) &server, sizeof(server))) == -1)
-        //     {
-        //         printf("SENDING h1 TO SERVER FAILED\n");
-        //     }
-        // if((nbytes=sendto(client_sock, h2, sizeof(h2), 0, (struct sockaddr*) &server, sizeof(server))) == -1)
-        //     {
-        //         printf("SENDING h2 TO SERVER FAILED\n");
-        //     }
-        // if((nbytes=sendto(client_sock, h3, sizeof(h3), 0, (struct sockaddr*) &server, sizeof(server))) == -1)
-        //     {
-        //         printf("SENDING h3 TO SERVER FAILED\n");
-        //     }
-        // if((nbytes=sendto(client_sock, h4, sizeof(h4), 0, (struct sockaddr*) &server, sizeof(server))) == -1)
-        //     {
-        //         printf("SENDING h4 TO SERVER FAILED\n");
-        //     }
-        // if((nbytes=sendto(client_sock, h5, sizeof(h4), 0, (struct sockaddr*) &server, sizeof(server))) == -1)
-        //     {
-        //         printf("SENDING h4 TO SERVER FAILED\n");
-        //     }
-
-        if((nbytes=write(client_sock, "HTTP/1.1 200 OK\n\n", sizeof("HTTP/1.1 200 OK\n\n")== -1)))
+        if((nbytes=write(client_sock, h1, strlen(h1)== -1)))
             {
                 printf("SENDING h1 TO SERVER FAILED\n");
+                strcpy(h1,"HTTP/1.1 500 Internal Server Error\n\n");
+                if((nbytes=write(client_sock, h1, strlen(h1)== -1)))
+                    {
+                        printf("SENDING h1 TO SERVER FAILED\n");
+                    }
+
+                sprintf(h2,"<html>\n<body>500 Internal Server Error : cannot allocate memory\n</body>\n</html>");
+
+                fd= open ("/home/praveen/Desktop/Netsys/Assignment2/www/500_error.html",O_RDWR);    
+                write(fd,h2,strlen(h2));
+                if((nbytes=sendfile(client_sock, fd,&offset, strlen(h2))) == -1)
+                    {
+                        printf("SENDING FILE NAME TO SERVER FAILED\n");
+                    }  
+                fclose(pFile); 
+                close(client_sock);
+                exit(0); 
             }
         if(nbytes=write(client_sock, h2, strlen(h2) == -1))
             {
                 printf("SENDING h2 TO SERVER FAILED\n");
+                strcpy(h1,"HTTP/1.1 500 Internal Server Error\n\n");
+                if((nbytes=write(client_sock, h1, strlen(h1)== -1)))
+                    {
+                        printf("SENDING h1 TO SERVER FAILED\n");
+                    }
+
+                sprintf(h2,"<html>\n<body>500 Internal Server Error : cannot allocate memory\n</body>\n</html>");
+
+                fd= open ("/home/praveen/Desktop/Netsys/Assignment2/www/500_error.html",O_RDWR);    
+                write(fd,h2,strlen(h2));
+                if((nbytes=sendfile(client_sock, fd,&offset, strlen(h2))) == -1)
+                    {
+                        printf("SENDING FILE NAME TO SERVER FAILED\n");
+                    }  
+                fclose(pFile); 
+                close(client_sock);
+                exit(0); 
             }
         if(nbytes=write(client_sock, h3, strlen(h3) == -1))
             {
                 printf("SENDING h3 TO SERVER FAILED\n");
+                strcpy(h1,"HTTP/1.1 500 Internal Server Error\n\n");
+                if((nbytes=write(client_sock, h1, strlen(h1)== -1)))
+                    {
+                        printf("SENDING h1 TO SERVER FAILED\n");
+                    }
+
+                sprintf(h2,"<html>\n<body>500 Internal Server Error : cannot allocate memory\n</body>\n</html>");
+
+                fd= open ("/home/praveen/Desktop/Netsys/Assignment2/www/500_error.html",O_RDWR);    
+                write(fd,h2,strlen(h2));
+                if((nbytes=sendfile(client_sock, fd,&offset, strlen(h2))) == -1)
+                    {
+                        printf("SENDING FILE NAME TO SERVER FAILED\n");
+                    }  
+                fclose(pFile); 
+                close(client_sock);
+                exit(0); 
             }
         if(nbytes=write(client_sock, h4, strlen(h4)== -1))
             {
                 printf("SENDING h4 TO SERVER FAILED\n");
+                strcpy(h1,"HTTP/1.1 500 Internal Server Error\n\n");
+                if((nbytes=write(client_sock, h1, strlen(h1)== -1)))
+                    {
+                        printf("SENDING h1 TO SERVER FAILED\n");
+                    }
+
+                sprintf(h2,"<html>\n<body>500 Internal Server Error : cannot allocate memory\n</body>\n</html>");
+
+                fd= open ("/home/praveen/Desktop/Netsys/Assignment2/www/500_error.html",O_RDWR);    
+                write(fd,h2,strlen(h2));
+                if((nbytes=sendfile(client_sock, fd,&offset, strlen(h2))) == -1)
+                    {
+                        printf("SENDING FILE NAME TO SERVER FAILED\n");
+                    }  
+                fclose(pFile); 
+                close(client_sock);
+                exit(0); 
+            }
+        if(nbytes=write(client_sock, h5, strlen(h5)== -1))
+            {
+                printf("SENDING h5 TO SERVER FAILED\n");
+                strcpy(h1,"HTTP/1.1 500 Internal Server Error\n\n");
+                if((nbytes=write(client_sock, h1, strlen(h1)== -1)))
+                    {
+                        printf("SENDING h1 TO SERVER FAILED\n");
+                    }
+
+                sprintf(h2,"<html>\n<body>500 Internal Server Error : cannot allocate memory\n</body>\n</html>");
+
+                fd= open ("/home/praveen/Desktop/Netsys/Assignment2/www/500_error.html",O_RDWR);    
+                write(fd,h2,strlen(h2));
+                if((nbytes=sendfile(client_sock, fd,&offset, strlen(h2))) == -1)
+                    {
+                        printf("SENDING FILE NAME TO SERVER FAILED\n");
+                    }  
+                fclose(pFile); 
+                close(client_sock);
+                exit(0); 
             }
 
         //SEND COMMAND NAME TO SERVER
         if((nbytes=sendfile(client_sock, fd,&offset, lSize)) == -1)
             {
                 printf("SENDING FILE NAME TO SERVER FAILED\n");
+                strcpy(h1,"HTTP/1.1 500 Internal Server Error\n\n");
+                if((nbytes=write(client_sock, h1, strlen(h1)== -1)))
+                    {
+                        printf("SENDING h1 TO SERVER FAILED\n");
+                    }
+
+                sprintf(h2,"<html>\n<body>500 Internal Server Error : cannot allocate memory\n</body>\n</html>");
+
+                fd= open ("/home/praveen/Desktop/Netsys/Assignment2/www/500_error.html",O_RDWR);    
+                write(fd,h2,strlen(h2));
+                if((nbytes=sendfile(client_sock, fd,&offset, strlen(h2))) == -1)
+                    {
+                        printf("SENDING FILE NAME TO SERVER FAILED\n");
+                    }  
+                fclose(pFile); 
+                close(client_sock);
+                exit(0); 
             }
             
         printf("SENDING FILE DONE!\n");
@@ -299,8 +439,8 @@ while(1)
         printf("FORK FAILED\n");
     }
     }
-    // close(client_sock);
-    // close(socket_desc);	
+    close(socket_desc);
+    close(client_sock);
     return 0;
 }
 
