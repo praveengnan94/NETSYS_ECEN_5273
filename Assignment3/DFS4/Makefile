@@ -7,7 +7,7 @@ OBJS =
 all: pgm1 
 
 pgm1:
-	$(CC) -o dfs1 dfs1.c $(CFLAGS) $(LIBS)
+	$(CC) -o dfs4 dfs4.c $(CFLAGS) $(LIBS)
 
 clean:
-	rm -f dfs1
+	rm -f dfs4
