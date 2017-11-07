@@ -25,6 +25,19 @@ char username[60],password[60];
 char dfc_path[50];
 char user_cmd[50];
 char dfs_numbers1[10],dfs_numbers2[10],dfs_numbers3[10],dfs_numbers4[10];//Sending numbers to DFS in PUT
+
+typedef struct dfsfile_names { 
+    int dfsfilecount;
+    char dirfilename[10][50]; 
+    } dfs_filename;
+dfs_filename dfsfilename[4];
+
+typedef struct listfiles { 
+    int parts[4];
+    char filenamewoextension[50]; 
+    } list_file;
+
+
 int main(int argc,char**argv)
 {
 
@@ -145,12 +158,167 @@ int main(int argc,char**argv)
     client4.sin_family = AF_INET;
     client4.sin_port = htons( port_number4 );
     
-    while(1)
-    { 
-      printf("ENTER one of the following commands\nLIST\nPUT <file_name>\nGET <file_name>\n\r");
-       /* Get the name, with size limit. */
-      fgets (user_cmd, sizeof(user_cmd), stdin);
-      pch=strtok(user_cmd," ");
+    if( connect(socket_desc1, (struct sockaddr *)&client1, sizeof(client1)) < 0)
+    {
+       printf("\n Error : Connection to Socket 1 Failed \n");
+       // return 1;
+    } 
+
+    if( connect(socket_desc2, (struct sockaddr *)&client2, sizeof(client2)) < 0)
+    {
+       printf("\n Error : Connection to Socket 2 Failed \n");
+       // return 1;
+    } 
+
+    if( connect(socket_desc3, (struct sockaddr *)&client3, sizeof(client3)) < 0)
+    {
+       printf("\n Error : Connection to Socket 3 Failed \n");
+       // return 1;
+    }
+
+    if( connect(socket_desc4, (struct sockaddr *)&client4, sizeof(client4)) < 0)
+    {
+       printf("\n Error : Connection to Socket 4 Failed \n");
+       // return 1;
+    }
+  
+  while(1)
+  { 
+    
+    printf("ENTER one of the following commands\nLIST\nPUT <file_name>\nGET <file_name>\n\r");
+     /* Get the name, with size limit. */
+    fgets (user_cmd, sizeof(user_cmd), stdin);
+
+    //SENDING TO DFS1,2,3,4
+     //SEND USERNAME AND PASSWORD FIRST
+      if((nbytes=send(socket_desc1, username, sizeof(username),0)== -1))
+      {
+          printf("SENDING username TO DFS1 FAILED\n");
+      }
+      if((nbytes =  recv(socket_desc1,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      }
+      if(strcmp(buffer,"ACK")!=0)
+      {
+        printf("ACK for username/password not received\n");
+        continue;
+      }
+
+      if((nbytes=send(socket_desc1, password, sizeof(password),0)== -1))
+      {
+          printf("SENDING password TO DFS1 FAILED\n");
+      }
+      if((nbytes=recv(socket_desc1,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      } 
+      if(strcmp(buffer,"ACK")!=0)
+      {
+        printf("ACK for username/password not received\n");
+        continue;
+      }
+      //DFS2
+      if((nbytes=send(socket_desc2, username, sizeof(username),0)== -1))
+      {
+          printf("SENDING username TO DFS2 FAILED\n");
+      }
+      if((nbytes =  recv(socket_desc2,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      }
+      if(strcmp(buffer,"ACK")!=0)
+      {
+        printf("ACK for username/password not received\n");
+        continue;
+      }
+
+      if((nbytes=send(socket_desc2, password, sizeof(password),0)== -1))
+      {
+          printf("SENDING password TO DFS2 FAILED\n");
+      }
+      if((nbytes=recv(socket_desc2,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      } 
+      if(strcmp(buffer,"ACK")!=0)
+      {
+        printf("ACK for username/password not received\n");
+        continue;
+      }
+      //DFS3
+      if((nbytes=send(socket_desc3, username, sizeof(username),0)== -1))
+      {
+          printf("SENDING username TO DFS3 FAILED\n");
+      }
+      if((nbytes =  recv(socket_desc3,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      }
+      if(strcmp(buffer,"ACK")!=0)
+      {
+        printf("ACK for username/password not received\n");
+        continue;
+      }
+
+      if((nbytes=send(socket_desc3, password, sizeof(password),0)== -1))
+      {
+          printf("SENDING password TO DFS3 FAILED\n");
+      }
+      if((nbytes=recv(socket_desc3,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      } 
+      if(strcmp(buffer,"ACK")!=0)
+      {
+        printf("ACK for username/password not received\n");
+        continue;
+      }
+      //DFS4
+      if((nbytes=send(socket_desc4, username, sizeof(username),0)== -1))
+      {
+          printf("SENDING username TO DFS1 FAILED\n");
+      }
+      if((nbytes =  recv(socket_desc4,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      }
+      if(strcmp(buffer,"ACK")!=0)
+      {
+        printf("ACK for username/password not received\n");
+        continue;
+      }
+
+      if((nbytes=send(socket_desc4, password, sizeof(password),0)== -1))
+      {
+          printf("SENDING password TO DFS4 FAILED\n");
+      }
+      if((nbytes=recv(socket_desc4,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      } 
+      if(strcmp(buffer,"ACK")!=0)
+      {
+        printf("ACK for username/password not received\n");
+        continue;
+      }
+
+    pch=strtok(user_cmd," ");
+    char *pos;
+    if ((pos=strchr(pch, '\n')) != NULL)
+    *pos = '\0';
+//----------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------
+
       if(strcmp(pch,"PUT")==0)
       {
         char file_name[50];
@@ -163,30 +331,6 @@ int main(int argc,char**argv)
           continue;
         }
           printf("FILE NAME is %s\n",file_name);
-
-        if( connect(socket_desc1, (struct sockaddr *)&client1, sizeof(client1)) < 0)
-        {
-           printf("\n Error : Connection to Socket 1 Failed \n");
-           // return 1;
-        } 
-
-        if( connect(socket_desc2, (struct sockaddr *)&client2, sizeof(client2)) < 0)
-        {
-           printf("\n Error : Connection to Socket 2 Failed \n");
-           // return 1;
-        } 
-
-        if( connect(socket_desc3, (struct sockaddr *)&client3, sizeof(client3)) < 0)
-        {
-           printf("\n Error : Connection to Socket 3 Failed \n");
-           // return 1;
-        }
-
-        if( connect(socket_desc4, (struct sockaddr *)&client4, sizeof(client4)) < 0)
-        {
-           printf("\n Error : Connection to Socket 4 Failed \n");
-           // return 1;
-        }
 
         char *pos;
         if ((pos=strchr(file_name, '\n')) != NULL)
@@ -349,128 +493,6 @@ int main(int argc,char**argv)
           dfs4chunk1_size=chunk1_size;
           dfs4chunk2_size=chunk2_size;
        }
-
-     //SENDING TO DFS1,2,3,4
-       //SEND USERNAME AND PASSWORD FIRST
-        if((nbytes=send(socket_desc1, username, strlen(username),0)== -1))
-        {
-            printf("SENDING username TO DFS1 FAILED\n");
-        }
-        if((nbytes =  recv(socket_desc1,buffer,60,0) ) < 0)
-        {
-            printf("ERROR in receiving ACK recv\n");
-            break;
-        }
-        if(strcmp(buffer,"ACK")!=0)
-        {
-          printf("ACK for username/password not received\n");
-          continue;
-        }
-
-        if((nbytes=send(socket_desc1, password, strlen(password),0)== -1))
-        {
-            printf("SENDING password TO DFS1 FAILED\n");
-        }
-        if((nbytes=recv(socket_desc1,buffer,60,0) ) < 0)
-        {
-            printf("ERROR in receiving ACK recv\n");
-            break;
-        } 
-        if(strcmp(buffer,"ACK")!=0)
-        {
-          printf("ACK for username/password not received\n");
-          continue;
-        }
-        //DFS2
-        if((nbytes=send(socket_desc2, username, strlen(username),0)== -1))
-        {
-            printf("SENDING username TO DFS2 FAILED\n");
-        }
-        if((nbytes =  recv(socket_desc2,buffer,60,0) ) < 0)
-        {
-            printf("ERROR in receiving ACK recv\n");
-            break;
-        }
-        if(strcmp(buffer,"ACK")!=0)
-        {
-          printf("ACK for username/password not received\n");
-          continue;
-        }
-
-        if((nbytes=send(socket_desc2, password, strlen(password),0)== -1))
-        {
-            printf("SENDING password TO DFS2 FAILED\n");
-        }
-        if((nbytes=recv(socket_desc2,buffer,60,0) ) < 0)
-        {
-            printf("ERROR in receiving ACK recv\n");
-            break;
-        } 
-        if(strcmp(buffer,"ACK")!=0)
-        {
-          printf("ACK for username/password not received\n");
-          continue;
-        }
-        //DFS3
-        if((nbytes=send(socket_desc3, username, strlen(username),0)== -1))
-        {
-            printf("SENDING username TO DFS3 FAILED\n");
-        }
-        if((nbytes =  recv(socket_desc3,buffer,60,0) ) < 0)
-        {
-            printf("ERROR in receiving ACK recv\n");
-            break;
-        }
-        if(strcmp(buffer,"ACK")!=0)
-        {
-          printf("ACK for username/password not received\n");
-          continue;
-        }
-
-        if((nbytes=send(socket_desc3, password, strlen(password),0)== -1))
-        {
-            printf("SENDING password TO DFS3 FAILED\n");
-        }
-        if((nbytes=recv(socket_desc3,buffer,60,0) ) < 0)
-        {
-            printf("ERROR in receiving ACK recv\n");
-            break;
-        } 
-        if(strcmp(buffer,"ACK")!=0)
-        {
-          printf("ACK for username/password not received\n");
-          continue;
-        }
-        //DFS4
-        if((nbytes=send(socket_desc4, username, strlen(username),0)== -1))
-        {
-            printf("SENDING username TO DFS1 FAILED\n");
-        }
-        if((nbytes =  recv(socket_desc4,buffer,60,0) ) < 0)
-        {
-            printf("ERROR in receiving ACK recv\n");
-            break;
-        }
-        if(strcmp(buffer,"ACK")!=0)
-        {
-          printf("ACK for username/password not received\n");
-          continue;
-        }
-
-        if((nbytes=send(socket_desc4, password, strlen(password),0)== -1))
-        {
-            printf("SENDING password TO DFS4 FAILED\n");
-        }
-        if((nbytes=recv(socket_desc4,buffer,60,0) ) < 0)
-        {
-            printf("ERROR in receiving ACK recv\n");
-            break;
-        } 
-        if(strcmp(buffer,"ACK")!=0)
-        {
-          printf("ACK for username/password not received\n");
-          continue;
-        }
 
         //SEND COMMAND name and receive ACK
         //DFS1
@@ -700,27 +722,199 @@ int main(int argc,char**argv)
                 printf("SENDING file TO DFS4 FAILED\n");
             }
         printf("Chunk 2 sent successfully to DFS4 \n");
-        
-        fclose(fp);
-        close(socket_desc1);
-        close(socket_desc2);
-        close(socket_desc3);
-        close(socket_desc4);
         chunk1=NULL;
-        // chunk2=NULL;
+        chunk2=NULL;
+        chunk3=NULL;
+        chunk4=NULL;
+        if((nbytes =  recv(socket_desc1,buffer,60,0) ) < 0)
+        {
+            printf("ERROR in receiving ACK recv\n");
+            break;
+        }
+        printf("Recevied final ACK\n");
+        fclose(fp);
       }
     else if(strcmp(pch,"GET")==0)
     {
 
     }
+//----------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------
+
     else if(strcmp(pch,"LIST")==0)
     {
+      printf("list command\n");
+      //SEND COMMAND name and receive ACK
+      //DFS1
+      pch=strtok(user_cmd," ");
+      if ((pos=strchr(pch, '\n')) != NULL)
+      *pos = '\0';
+      if((nbytes=send(socket_desc1, pch, strlen(pch),0)== -1))
+      {
+          printf("SENDING COMMAND TO DFS1 FAILED\n");
+      }
+      if((nbytes =  recv(socket_desc1,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      }
+      //DFS2
+      pch=strtok(user_cmd," ");
+      if((nbytes=send(socket_desc2, pch, strlen(pch),0)== -1))
+      {
+          printf("SENDING COMMAND TO DFS2 FAILED\n");
+      }
+      if((nbytes =  recv(socket_desc2,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      }
+      //DFS3
+      pch=strtok(user_cmd," ");
+      if((nbytes=send(socket_desc3, pch, strlen(pch),0)== -1))
+      {
+          printf("SENDING COMMAND TO DFS3 FAILED\n");
+      }
+      if((nbytes =  recv(socket_desc3,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      }
+      //DFS4
+      pch=strtok(user_cmd," ");
+      if((nbytes=send(socket_desc4, pch, strlen(pch),0)== -1))
+      {
+          printf("SENDING COMMAND TO DFS4 FAILED\n");
+      }
+      if((nbytes =  recv(socket_desc4,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      }
+      int filecount;
+      int totalfilecount=0;
+
+      //RECEIVE NUMBER OF FILES ABOUT TO BE SENT FROM DFS AND FILE NAMES
+      //DFS1
+      if((nbytes =  recv(socket_desc1,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      }
+      filecount=atoi(buffer);
+      printf("FILECOUNT reveied is %d\n",filecount);
+      // printf("FILECOUNT reveied is %s\n",buffer);
+      totalfilecount=totalfilecount+filecount;
+      dfsfilename[0].dfsfilecount=filecount;
+      for(int i=0;i<filecount;i++)
+      {
+        if((nbytes =  recv(socket_desc1,dfsfilename[0].dirfilename[i],sizeof(dfsfilename[0].dirfilename[filecount]),0) ) < 0)
+        {
+            printf("ERROR in receiving ACK recv\n");
+            break;
+        }  
+      }
+      //DFS2
+      if((nbytes =  recv(socket_desc2,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      }
+      filecount=atoi(buffer);
+      printf("FILECOUNT reveied is %d\n",filecount);
+      // printf("FILECOUNT reveied is %s\n",buffer);
+      totalfilecount=totalfilecount+filecount;
+      dfsfilename[1].dfsfilecount=filecount;
+      for(int i=0;i<filecount;i++)
+      {
+        if((nbytes =  recv(socket_desc2,dfsfilename[1].dirfilename[i],sizeof(dfsfilename[1].dirfilename[filecount]),0) ) < 0)
+        {
+            printf("ERROR in receiving ACK recv\n");
+            break;
+        }  
+      }
+      //DFS3
+      if((nbytes =  recv(socket_desc3,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      }
+      filecount=atoi(buffer);
+      printf("FILECOUNT reveied is %d\n",filecount);
+      // printf("FILECOUNT reveied is %s\n",buffer);
+      totalfilecount=totalfilecount+filecount;
+      dfsfilename[2].dfsfilecount=filecount;
+      for(int i=0;i<filecount;i++)
+      {
+        if((nbytes =  recv(socket_desc3,dfsfilename[2].dirfilename[i],sizeof(dfsfilename[2].dirfilename[filecount]),0) ) < 0)
+        {
+            printf("ERROR in receiving ACK recv\n");
+            break;
+        }  
+      }
+      //DFS4
+      if((nbytes =  recv(socket_desc4,buffer,60,0) ) < 0)
+      {
+          printf("ERROR in receiving ACK recv\n");
+          break;
+      }
+      filecount=atoi(buffer);
+      printf("FILECOUNT reveied is %d\n",filecount);
+      // printf("FILECOUNT reveied is %s\n",buffer);
+      totalfilecount=totalfilecount+filecount;
+      dfsfilename[3].dfsfilecount=filecount;
+      for(int i=0;i<filecount;i++)
+      {
+        if((nbytes =  recv(socket_desc4,dfsfilename[3].dirfilename[i],sizeof(dfsfilename[3].dirfilename[filecount]),0) ) < 0)
+        {
+            printf("ERROR in receiving ACK recv\n");
+            break;
+        }  
+      }        
+  // typedef struct listfiles { 
+  //   int parts[4];
+  //   char filenamewoextension[50]; 
+  //   } list_file;
+      list_file *listfile;
+      listfile = (list_file*)malloc((totalfilecount*sizeof(list_file)));
+      int temptotalfilecount=totalfilecount;
+      int validfilenumber=0;
+      char *strippedfilename;
+      int strippednumber;
+      char *reversefilename;
+     //FORM FILES FROM RECEIVED DATA AND DISPLAY
+      for(int i=0;i<4;i++)//PARSE THRU 4 DFS
+      {
+        for(int dfscount=0;dfscount<dfsfilename[i].dfsfilecount;dfscount++)//parse through all files of a single DFS
+        {
+          //remove extension from filename and store in strippedfilename and stripped number
+          printf("Recevied file is %s\n",dfsfilename[i].dirfilename[dfscount]);
+
+          // //Do strcmp(filenamewoextension,strippedfilename)
+          // for(int i=0;i<totalfilecount;i++)
+          // {
+          //   if(strcmp((listfile[i].filenamewoextension),strippedfilename)==0)
+          //   {
+          //     listfile[i].parts[strippednumber]=7;//7 means set
+          //     validfilenumber++;
+          //     continue;
+          //   }
+          // }
+          // printf("File name not found in listfile\n");
+          // strcpy((listfile[validfilenumber].filenamewoextension),strippedfilename);
+        }
+      }
 
     }
     else
     {
       printf("Enter a valid command\n");
     }
+    // close(socket_desc1);
+    // close(socket_desc2);
+    // close(socket_desc3);
+    // close(socket_desc4);
   }
     return 0;
 }
